@@ -48,6 +48,15 @@ return {
             --    That is to say, every time a new file is opened that is associated with
             --    an lsp (for example, opening `main.rs` is associated with `rust_analyzer`) this
             --    function will be executed to configure the current buffer
+
+            vim.diagnostic.config({
+                virtual_text = { prefix = "●", spacing = 2 },
+                signs = true,
+                underline = true,
+                update_in_insert = false,
+                severity_sort = true,
+            })
+
             vim.api.nvim_create_autocmd("LspAttach", {
 
                 group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
@@ -247,6 +256,18 @@ return {
                         -- by the server configuration above. Useful when disabling
                         -- certain features of an LSP (for example, turning off formatting for tsserver)
                         server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
+
+                        -- Wrap user on_attach to also patch encoding
+                        local user_on_attach = server.on_attach
+                        server.on_attach = function(client, bufnr)
+                            -- 🔥 Force all servers to use utf-16
+                            client.offset_encoding = "utf-16"
+
+                            if user_on_attach then
+                                user_on_attach(client, bufnr)
+                            end
+                        end
+
                         require("lspconfig")[server_name].setup(server)
                     end,
                 },
